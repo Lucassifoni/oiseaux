@@ -1,0 +1,19 @@
+{
+  "name": "oiseaux",
+  "version": "0.0.1",
+  "description": "Journal de fabrication d&#39;un téléscope photographique diurne entièrement commandé par une application progressive et un backend Elixir.",
+  "main": "index.js",
+  "authors": {
+    "name": "Lucas Sifoni",
+    "email": "lucas@documents.design"
+  },
+  "repository": "https://github.com/Lucassifoni/oiseaux/oiseaux",
+  "scripts": {
+    "dev": "vuepress dev src",
+    "build": "vuepress build src"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "vuepress": "^1.5.3"
+  }
+}
