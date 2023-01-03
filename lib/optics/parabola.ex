@@ -83,9 +83,9 @@ defmodule Optics.Parabola do
     end)
   end
 
-  @spec reflection_coords(number, number, number) ::
+  @spec reflection_coords_onaxis(number, number, number) ::
           {:ok, %Optics.Segment{}}
-  def reflection_coords(focal_length, y, source_distance) do
+  def reflection_coords_onaxis(focal_length, y, source_distance) do
     x = x_coord_on_parabola(focal_length, y)
     {:ok, v1} = Segment.make(x, y, source_distance, 0.0)
     normal = normal_coords(focal_length, y)
@@ -95,18 +95,34 @@ defmodule Optics.Parabola do
     Segment.make(x, y, x_coord, 0.0)
   end
 
-  @spec non_parallel_rayfan_coords(float, float, float, integer) :: list(%Segment{})
+  def reflection_angle(f, y, source_distance, source_height) do
+    x = x_coord_on_parabola(f, y)
+    {:ok, v1} = Segment.make(x, y, source_distance, source_height)
+    normal = normal_coords(f, y)
+    angle = angle_between_segments(v1, normal)
+    (angle_with_x_axis(v1) + (2.0 * angle)) - :math.pi()
+  end
+
+  @spec reflection_coords(float, float, float, float) ::
+          {:ok,
+           %Optics.Segment{}}
+  def reflection_coords(focal_length, y, source_distance, source_height) do
+    output_angle = reflection_angle(focal_length, y, source_distance, source_height)
+    x = x_coord_on_parabola(focal_length, y)
+    ray_length = 2.5 * focal_length
+    Segment.make(
+      x,
+      y,
+      x + abs(ray_length * :math.cos(output_angle)),
+      y + ray_length * (:math.sin(output_angle * -1))
+    )
+  end
+
+  @spec non_parallel_rayfan_coords(float, float, float, float, integer) :: list(%Segment{})
   @doc """
   Returns a list of rays (Segments) and their reflections.
-
-      iex> rays = Optics.Parabola.non_parallel_rayfan_coords(400.0, 57.0, 10000.0, 4)
-      iex> last_ray = rays |> List.last()
-      iex> %Optics.Segment{a: %Optics.Point{x: 2.030625, y: 57.0},b: %Optics.Point{x: 416.836314941448, y: 0.0}} = last_ray
-      iex> rays = Optics.Parabola.non_parallel_rayfan_coords(400.0, 57.0, 99999999999999.0, 4)
-      iex> last_ray = rays |> List.last()
-      iex> 400.0 = Float.round(last_ray.b.x, 2)
   """
-  def non_parallel_rayfan_coords(focal_length, radius, source_distance, rays) do
+  def non_parallel_rayfan_coords(focal_length, radius, source_distance, source_height, rays) do
     base_y = -radius
     base_x = source_distance
     step = abs(radius) / rays * 2
@@ -116,7 +132,7 @@ defmodule Optics.Parabola do
       y = base_y + r * step
       x = x_coord_on_parabola(focal_length, y)
       {:ok, s1} = Segment.make(x, y, base_x, 0)
-      {:ok, s2} = reflection_coords(focal_length, y, source_distance)
+      {:ok, s2} = reflection_coords(focal_length, y, source_distance, source_height)
       [s1, s2]
     end)
   end
@@ -135,21 +151,27 @@ defmodule Optics.Parabola do
     floaty_equal(s1.a.y, s2.a.y, n) and floaty_equal(s1.b.y, s2.b.y, n)
   end
 
-  @spec non_parallel_rayfan_coords_rs(float, float, float, integer) :: list(%Segment{})
+  @spec non_parallel_rayfan_coords_rs(float, float, float, float, integer) :: list(%Segment{})
   @doc """
   Returns a list of rays (Segments) and their reflections, but implemented rust-side
 
-      iex> rays = Optics.Parabola.non_parallel_rayfan_coords(400.0, 57.0, 10000.0, 4)
-      iex> rays_rs = Optics.Parabola.non_parallel_rayfan_coords_rs(400.0, 57.0, 10000.0, 4)
-      iex> %Optics.Segment{a: %Optics.Point{x: 2.030625, y: 57.0},b: %Optics.Point{x: 416.836314941448, y: 0.0}} = rays |> List.last()
-      iex> true = Optics.Parabola.sfe(rays |> List.last(), rays_rs |> List.last(), 2)
-      iex> rays = Optics.Parabola.non_parallel_rayfan_coords(400.0, 57.0, 99999999999999.0, 4)
-      iex> rays_rs = Optics.Parabola.non_parallel_rayfan_coords_rs(400.0, 57.0, 99999999999999.0, 4)
-      iex> 400.0 = Float.round(List.last(rays).b.x, 2)
-      iex> 400.0 = Float.round(List.last(rays_rs).b.x, 2)
-      iex> true = Optics.Parabola.sfe(rays |> List.last(), rays_rs |> List.last(), 2)
+      iex> rays = Optics.Parabola.non_parallel_rayfan_coords(400.0, 57.0, 10000.0, 0.0, 4)
+      iex> rays_rs = Optics.Parabola.non_parallel_rayfan_coords_rs(400.0, 57.0, 10000.0, 0.0, 4)
+      iex> true = Optics.Parabola.sfe(rays |> List.last(), rays_rs |> List.last(), 8)
+
+      iex> rays = Optics.Parabola.non_parallel_rayfan_coords(400.0, 57.0, 99999999999999.0, 0.0, 4)
+      iex> rays_rs = Optics.Parabola.non_parallel_rayfan_coords_rs(400.0, 57.0, 99999999999999.0, 0.0, 4)
+      iex> true = Optics.Parabola.sfe(rays |> List.last(), rays_rs |> List.last(), 8)
+
+      iex> rays = Optics.Parabola.non_parallel_rayfan_coords(400.0, 57.0, 10000.0, 10.0, 4)
+      iex> rays_rs = Optics.Parabola.non_parallel_rayfan_coords_rs(400.0, 57.0, 10000.0, 10.0, 4)
+      iex> true = Optics.Parabola.sfe(rays |> List.last(), rays_rs |> List.last(), 8)
+
+      iex> rays = Optics.Parabola.non_parallel_rayfan_coords(400.0, 57.0, 99999999999999.0, 10.0, 4)
+      iex> rays_rs = Optics.Parabola.non_parallel_rayfan_coords_rs(400.0, 57.0, 99999999999999.0, 10.0, 4)
+      iex> true = Optics.Parabola.sfe(rays |> List.last(), rays_rs |> List.last(), 8)
   """
-  def non_parallel_rayfan_coords_rs(focal_length, radius, source_distance, rays) do
-    Optics.RxopticsNif.non_parallel_rayfan_coords(focal_length, radius, source_distance, rays)
+  def non_parallel_rayfan_coords_rs(focal_length, radius, source_distance, source_height, rays) do
+    Optics.RxopticsNif.non_parallel_rayfan_coords(focal_length, radius, source_distance, source_height, rays)
   end
 end

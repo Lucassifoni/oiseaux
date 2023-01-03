@@ -10,5 +10,10 @@ defmodule Scope.TelescopeApi do
   def left(pid), do: GenServer.cast(pid, :start_move_left)
   def right(pid), do: GenServer.cast(pid, :start_move_right)
 
+  def focus_in(pid), do: GenServer.cast(pid, :start_focus_in)
+
+  def focus_out(pid), do: GenServer.cast(pid, :start_focus_out)
+
   def stop(pid), do: GenServer.cast(pid, :stop_move)
+  def stop_focus(pid), do: GenServer.cast(pid, :stop_focusing)
 end
