@@ -5,5 +5,7 @@ defmodule Optics.RxopticsNif do
 
   def reflection_angle(_focal_length, _radius, _source_distance, _source_height), do: error()
 
+  def load_image(_path), do: error()
+
   defp error, do: :erlang.nif_error(:nif_not_loaded)
 end
