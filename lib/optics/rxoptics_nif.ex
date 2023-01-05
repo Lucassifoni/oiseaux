@@ -7,5 +7,9 @@ defmodule Optics.RxopticsNif do
 
   def load_image(_path), do: error()
 
+  def blur(_res, _scene_distance, _sensor_distance, _pxsize, _radius, _base_fl), do: error()
+
+  def blur_diam_px_from_base_fl(_base_fl, _radius, _rd, _sensor_distance, _px_size), do: error()
+
   defp error, do: :erlang.nif_error(:nif_not_loaded)
 end

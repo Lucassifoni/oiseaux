@@ -1,6 +1,10 @@
 use image::{
-    self, DynamicImage, GenericImageView, GrayImage, ImageError, Luma, Rgba, RgbaImage,
+    self, DynamicImage, GenericImageView, GrayImage, ImageBuffer, ImageError, Luma, Pixel, Rgba,
+    RgbaImage,
 };
+use imageproc::drawing::{Blend, Canvas};
+use std::error::Error;
+use std::ops::Deref;
 
 pub fn load_image(file_name: String) -> Result<DepthAndColorMap, ImageError> {
     match image::open(file_name) {
@@ -25,38 +29,110 @@ pub struct DepthAndColorMap {
 }
 
 fn to_depth_and_color_map(a: DynamicImage) -> DepthAndColorMap {
-    let pixels = a.pixels().into_iter();
+    let w = GenericImageView::width(&a);
+    let h = GenericImageView::height(&a);
 
-    let mut rgba_out = RgbaImage::new(a.width(), a.height());
-    let mut depth_out = GrayImage::new(a.width(), a.height());
-
-    for (x, y, rgba) in pixels {
-        let [r, g, b, a] = rgba.0;
-        rgba_out.put_pixel(x, y, Rgba::<u8>([r, g, b, 255]));
-        depth_out.put_pixel(x, y, Luma::<u8>([a]));
-    }
-
-    let w = a.width();
     let mut depth_and_color_vec = DepthAndColorMap {
         width: w,
-        height: a.height(),
+        height: h,
         values: vec![],
     };
 
-    let mut i = 0;
-
-    for px in depth_out.pixels().into_iter() {
-        let y = i % w;
-        let x = i / w;
-        let rgbax = rgba_out.get_pixel(y, x);
+    for (x, y, rgba) in a.pixels().into_iter() {
+        let [r, g, b, a] = rgba.0;
         depth_and_color_vec.values.push(DepthAndColorPx {
-            x,
             y,
-            d: px.0[0],
-            rgba: [rgbax.0[0], rgbax.0[1], rgbax.0[2], rgbax.0[3]],
+            x,
+            d: a,
+            rgba: [r, g, b, 255],
         });
-        i += 1;
     }
+
     depth_and_color_vec.values.sort_by(|a, b| a.d.cmp(&b.d));
     depth_and_color_vec
+}
+
+fn map_depth_to_distance(depth: u8, scene_distance: f64, scene_depth: f64) -> f64 {
+    let mul = scene_depth / 255.0;
+    (255.0 - depth as f64).abs() * mul + scene_distance
+}
+
+fn encode_png<P, Container>(img: &ImageBuffer<P, Container>) -> Result<Vec<u8>, ImageError>
+where
+    P: Pixel<Subpixel = u8> + 'static,
+    Container: Deref<Target = [P::Subpixel]>,
+{
+    let mut buf = Vec::new();
+    let encoder = image::png::PNGEncoder::new(&mut buf);
+    encoder.encode(img, img.width(), img.height(), P::COLOR_TYPE)?;
+    Ok(buf)
+}
+
+pub fn blur_diam_px_from_base_fl(
+    base_fl: f64,
+    radius: f64,
+    rd: f64,
+    sensor_distance: f64,
+    px_size: f64,
+) -> f64 {
+    let efl = crate::parabola::effective_fl(base_fl, radius, rd);
+    let spread = crate::parabola::spread(efl, radius, rd);
+    (crate::parabola::blur_size(radius, efl, sensor_distance, spread) / px_size).abs() / 2.0
+}
+
+pub fn blur(
+    res: rustler::ResourceArc<DepthAndColorMap>,
+    scene_distance: f64,
+    sensor_distance: f64,
+    pxsize: f64,
+    radius: f64,
+    base_fl: f64,
+) -> Result<Vec<u8>, ImageError> {
+    let scene_width = scene_distance * (0.51 * std::f64::consts::PI / 180.0).tan();
+    let tile_size = scene_width / 3.69;
+    let scene_depth = ((tile_size * 2.0_f64.sqrt() * 6.0) / 2.0) * 3.0_f64.sqrt();
+    let depth_color_map: &DepthAndColorMap = &*res;
+    let mut current_blur = -1.0;
+    let mut out = Blend(RgbaImage::new(
+        depth_color_map.width,
+        depth_color_map.height,
+    ));
+    let mut drawer = Blend(RgbaImage::from_pixel(
+        depth_color_map.width,
+        depth_color_map.height,
+        image::Rgba([255, 255, 255, 0]),
+    ));
+    let mut blurrer = RgbaImage::new(depth_color_map.width, depth_color_map.height);
+    for val in depth_color_map.values.iter() {
+        let p = *val;
+        let x = p.x;
+        let y = p.y;
+        let d = map_depth_to_distance(p.d, scene_distance, scene_depth);
+        let r = p.rgba[0];
+        let g = p.rgba[1];
+        let b = p.rgba[2];
+        let rd = d;
+        let blur_diam_px = blur_diam_px_from_base_fl(base_fl, radius, rd, sensor_distance, pxsize);
+        let bv = ((blur_diam_px / 8.0).abs() * 100.0).trunc() / 100.0;
+        let color = Rgba([r, g, b, 255]);
+        if bv != current_blur {
+            let top = &drawer.0;
+            image::imageops::overlay(&mut blurrer, top, 0, 0);
+            blurrer = image::imageops::blur(&blurrer, bv as f32);
+            image::imageops::overlay(&mut out.0, &blurrer, 0, 0);
+            drawer = Blend(RgbaImage::from_pixel(
+                depth_color_map.width,
+                depth_color_map.height,
+                image::Rgba([255, 255, 255, 0]),
+            ));
+            current_blur = bv;
+        }
+        imageproc::drawing::draw_filled_circle_mut(&mut drawer, (x as i32, y as i32), 1, color);
+    }
+
+    let top = &drawer.0;
+    image::imageops::overlay(&mut blurrer, top, 0, 0);
+    blurrer = image::imageops::blur(&blurrer, current_blur as f32);
+    image::imageops::overlay(&mut out.0, &blurrer, 0, 0);
+    encode_png(&out.0)
 }

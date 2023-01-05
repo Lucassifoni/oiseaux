@@ -18,6 +18,7 @@ defmodule ScopeWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :index
+    get "/dof_simulation", PageController, :dof_simulation
   end
 
   # Other scopes may use custom stacks.

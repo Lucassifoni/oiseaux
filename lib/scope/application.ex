@@ -13,9 +13,10 @@ defmodule Scope.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: Scope.PubSub},
       # Start the Endpoint (http/https)
-      ScopeWeb.Endpoint
+      ScopeWeb.Endpoint,
       # Start a worker by calling: Scope.Worker.start_link(arg)
       # {Scope.Worker, arg}
+      Optics.SceneHolder
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
