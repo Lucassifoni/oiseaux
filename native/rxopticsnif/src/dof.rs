@@ -57,6 +57,7 @@ fn map_depth_to_distance(depth: u8, scene_distance: f64, scene_depth: f64) -> f6
     (255.0 - depth as f64).abs() * mul + scene_distance
 }
 
+// https://stackoverflow.com/questions/50731636/how-do-i-encode-a-rust-piston-image-and-get-the-result-in-memory
 fn encode_png<P, Container>(img: &ImageBuffer<P, Container>) -> Result<Vec<u8>, ImageError>
 where
     P: Pixel<Subpixel = u8> + 'static,
