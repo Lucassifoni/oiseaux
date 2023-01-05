@@ -44,7 +44,7 @@ fn load(env: rustler::Env, _info: rustler::Term) -> bool {
     true
 }
 
-#[rustler::nif]
+#[rustler::nif(schedule = "DirtyIo")]
 pub fn load_image(path: String) -> Result<ResourceArc<DepthAndColorMap>, ImageHandlingError> {
     match dof::load_image(path) {
         Ok(a) => Ok(ResourceArc::new(a)),
@@ -54,7 +54,7 @@ pub fn load_image(path: String) -> Result<ResourceArc<DepthAndColorMap>, ImageHa
     }
 }
 
-#[rustler::nif]
+#[rustler::nif(schedule = "DirtyCpu")]
 pub fn blur(
     res: rustler::ResourceArc<DepthAndColorMap>,
     scene_distance: f64,
