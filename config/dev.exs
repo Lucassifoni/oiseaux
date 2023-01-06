@@ -3,9 +3,6 @@ import Config
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
-# The watchers configuration can be used to run external
-# watchers to your application. For example, we use it
-# with esbuild to bundle .js and .css sources.
 config :scope, ScopeWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
@@ -13,11 +10,7 @@ config :scope, ScopeWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "ysxK5T2nxYj0u/aK3YzLWm9xLbBxPf+qA9yEiLsfCGPSK3ui8NrIUgr6vFRZuy3P",
-  watchers: [
-    # Start the esbuild watcher by calling Esbuild.install_and_run(:default, args)
-    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]}
-  ]
+  secret_key_base: "ysxK5T2nxYj0u/aK3YzLWm9xLbBxPf+qA9yEiLsfCGPSK3ui8NrIUgr6vFRZuy3P"
 
 # ## SSL Support
 #
