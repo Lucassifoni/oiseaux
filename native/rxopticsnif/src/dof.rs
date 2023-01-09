@@ -93,14 +93,20 @@ fn draw_image(destination: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, source: &DepthAn
 }
 
 fn premultiply(c: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, orig: &DepthAndColorMap) {
-    let mut i = 0;
-    for p in c.pixels_mut() {
+    for value in orig.values.iter() {
+        let p = c.get_pixel_mut(value.x, value.y);
         if p.0[3] == 0 {
-            let px = orig.values[i];
-            p.0 = px.rgba;
+            let px = value.rgba;
+            p.0 = px;
             p.0[3] = 0;
         }
-        i += 1;
+    }
+}
+
+fn predraw(c: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, orig: &DepthAndColorMap) {
+    for value in orig.values.iter() {
+        let p = c.get_pixel_mut(value.x, value.y);
+        p.0 = value.rgba;
     }
 }
 
@@ -122,6 +128,7 @@ pub fn blur(
         depth_color_map.width,
         depth_color_map.height,
     ));
+   // predraw(&mut out.0, depth_color_map);
     let mut drawer = Blend(RgbaImage::from_pixel(
         depth_color_map.width,
         depth_color_map.height,
@@ -142,17 +149,15 @@ pub fn blur(
         let b = p.rgba[2];
         let elf = parabola::effective_fl(base_fl, radius, d);
         let spread = parabola::spread(elf, radius, d);
-        let blur_diam_px = (parabola::blur_size(radius, elf, sensor_distance, spread) / pxsize) / 8.0;
+        let blur_diam_px =
+            (parabola::blur_size(radius, elf, sensor_distance, spread) / pxsize) / 8.0 + 0.15;
         bv = ((blur_diam_px * 10.0).trunc() / 10.0).abs();
         let color = Rgba([r, g, b, 255]);
         imageproc::drawing::draw_filled_circle_mut(&mut drawer, (x as i32, y as i32), 1, color);
         if bv != current_blur {
             image::imageops::overlay(&mut blurrer, &drawer.0, 0, 0);
             premultiply(&mut blurrer, &depth_color_map);
-            if bv > 0.5 {
-
-                blurrer = imageproc::filter::gaussian_blur_f32(&mut blurrer, bv as f32);
-            }
+            blurrer = imageproc::filter::gaussian_blur_f32(&mut blurrer, bv as f32);
             for x in 0..depth_color_map.width {
                 for y in 0..depth_color_map.height {
                     out.draw_pixel(x, y, *blurrer.get_pixel(x, y));
