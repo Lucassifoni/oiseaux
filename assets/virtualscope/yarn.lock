@@ -117,6 +117,11 @@
   resolved "https://registry.yarnpkg.com/@esbuild/win32-x64/-/win32-x64-0.16.14.tgz#90558dcb279989d92a42e5be4dfb884b2399361f"
   integrity sha512-ED1UpWcM6lAbalbbQ9TrGqJh4Y9TaASUvu8bI/0mgJcxhSByJ6rbpgqRhxYMaQ682WfA71nxUreaTO7L275zrw==
 
+"@types/phoenix@^1.5.4":
+  version "1.5.4"
+  resolved "https://registry.yarnpkg.com/@types/phoenix/-/phoenix-1.5.4.tgz#c08a1da6d7b4e365f6a1fe1ff9aada55f5356d24"
+  integrity sha512-L5eZmzw89eXBKkiqVBcJfU1QGx9y+wurRIEgt0cuLH0hwNtVUxtx+6cu0R2STwWj468sjXyBYPYDtGclUd1kjQ==
+
 "@types/three@^0.148.0":
   version "0.148.0"
   resolved "https://registry.yarnpkg.com/@types/three/-/three-0.148.0.tgz#bf7f0f6f12a9b318eebb7dc3813ae69824e13ae6"
@@ -407,6 +412,11 @@ path-parse@^1.0.7:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/path-parse/-/path-parse-1.0.7.tgz#fbc114b60ca42b30d9daf5858e4bd68bbedb6735"
   integrity sha512-LDJzPVEEEPR+y48z93A0Ed0yXb8pAByGWo/k5YYdYgpY2/2EsOsksJrq7lOHxryrVOn1ejG6oAp8ahvOIQD8sw==
+
+phoenix@^1.7.0-rc.1:
+  version "1.7.0-rc.1"
+  resolved "https://registry.yarnpkg.com/phoenix/-/phoenix-1.7.0-rc.1.tgz#c720458cb151d57811ded0bc508a7b43667ae5c6"
+  integrity sha512-Zev2qVhpmXXCFM/d2GC+5SevQ5yP2lCWPs3tjcPO96hlGvOt8Wn3cH8VxvQaI3GVzn9WfZ0aTAF9o0zSavXxyg==
 
 picocolors@^1.0.0:
   version "1.0.0"

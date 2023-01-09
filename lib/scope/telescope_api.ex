@@ -3,7 +3,10 @@ defmodule Scope.TelescopeApi do
 
   def home(pid), do: GenServer.call(pid, :home, 10000)
 
-  def show(pid), do: GenServer.cast(pid, :show)
+  def show(pid) do
+    {:ok, reply} = GenServer.call(pid, :show)
+    reply
+  end
 
   def up(pid), do: GenServer.cast(pid, :start_move_up)
   def down(pid), do: GenServer.cast(pid, :start_move_down)

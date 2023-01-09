@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/phoenix": "^1.5.4",
     "@types/three": "^0.148.0",
     "@vueuse/core": "^9.10.0",
+    "phoenix": "^1.7.0-rc.1",
     "three": "^0.148.0",
     "vue": "^3.2.45"
   },

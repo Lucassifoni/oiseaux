@@ -16,7 +16,8 @@ defmodule Scope.Application do
       ScopeWeb.Endpoint,
       # Start a worker by calling: Scope.Worker.start_link(arg)
       # {Scope.Worker, arg}
-      Optics.SceneHolder
+      Optics.SceneHolder,
+      Scope.ScopeHolder
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

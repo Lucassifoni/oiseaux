@@ -230,7 +230,7 @@ pub fn projected_vfov(vfov: f64, dist: f64) -> f64 {
 
 pub fn blur_size(radius: f64, efl: f64, sensor_distance: f64, lspread: f64) -> f64 {
     let angle = (radius / efl).tan();
-    let pos = efl - (sensor_distance + 0.66 * lspread);
+    let pos = efl - sensor_distance;
     angle.sin() * pos * 2.0
 }
 

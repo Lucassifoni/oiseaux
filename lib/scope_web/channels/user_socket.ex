@@ -23,7 +23,10 @@ defmodule ScopeWeb.UserSocket do
   # performing token verification on connect.
   @impl true
   def connect(_params, socket, _connect_info) do
-    {:ok, socket}
+    {
+      :ok,
+      socket
+    }
   end
 
   # Socket id's are topics that allow you to identify all sockets for a given user:
