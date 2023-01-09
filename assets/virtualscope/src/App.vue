@@ -34,7 +34,7 @@ const sendCmd = (cmd: string) => {
 <template>
   <div style="width: 100%; height: 100%; position: fixed; display: flex;" v-if="scope">
     <div style="flex: 0 0 40%; display: flex; flex-direction: column;">
-      <div style="flex: 0 0 50%; padding: 16px; background: lightcoral;">
+      <div style="flex: 0 0 50%; padding: 16px;">
         <ScopeImage :scope="scope"></ScopeImage>
       </div>
       <div style="flex: 0 0 50%;  padding: 16px;background: lightblue;">

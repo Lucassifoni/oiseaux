@@ -25,6 +25,15 @@ const props = defineProps<{
     </div>
 </template>
 
-<style>
+<style scoped>
+ul {
+    margin: 0;
+    font-family: sans-serif;
+    padding-left: 0;
+    font-size: 1.5em
+}
 
+li {
+    list-style: none;
+}
 </style>

@@ -83,16 +83,7 @@ pub fn blur_diam_px_from_base_fl(
     (crate::parabola::blur_size(radius, efl, sensor_distance, spread) / px_size) / 16.0
 }
 
-fn draw_image(destination: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, source: &DepthAndColorMap) -> () {
-    let width = source.width;
-    for x in 0..source.width {
-        for y in 0..source.height {
-            destination.draw_pixel(x, y, Rgba(source.values[(y * width + x) as usize].rgba));
-        }
-    }
-}
-
-fn premultiply(c: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, orig: &DepthAndColorMap) {
+fn adjust_transparent_colors(c: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, orig: &DepthAndColorMap) {
     for value in orig.values.iter() {
         let p = c.get_pixel_mut(value.x, value.y);
         if p.0[3] == 0 {
@@ -103,10 +94,22 @@ fn premultiply(c: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, orig: &DepthAndColorMap) 
     }
 }
 
-fn predraw(c: &mut ImageBuffer<Rgba<u8>, Vec<u8>>, orig: &DepthAndColorMap) {
-    for value in orig.values.iter() {
-        let p = c.get_pixel_mut(value.x, value.y);
-        p.0 = value.rgba;
+fn do_paint(
+    blurrer: &mut ImageBuffer<Rgba<u8>, Vec<u8>>,
+    drawer: &Blend<ImageBuffer<Rgba<u8>, Vec<u8>>>,
+    depth_color_map: &DepthAndColorMap,
+    out: &mut Blend<ImageBuffer<Rgba<u8>, Vec<u8>>>,
+    blur_value: f32,
+) {
+    image::imageops::overlay(blurrer, &drawer.0, 0, 0);
+    adjust_transparent_colors(blurrer, &depth_color_map);
+    if blur_value >= 1.0 {
+        *blurrer = imageproc::filter::gaussian_blur_f32(blurrer, blur_value);
+    }
+    for x in 0..depth_color_map.width {
+        for y in 0..depth_color_map.height {
+            out.draw_pixel(x, y, *blurrer.get_pixel(x, y));
+        }
     }
 }
 
@@ -123,66 +126,31 @@ pub fn blur(
     let scene_depth = ((tile_size * 2.0_f64.sqrt() * 6.0) / 2.0) * 3.0_f64.sqrt() * 2.0;
     let depth_color_map: &DepthAndColorMap = &*res;
     let mut current_blur = -1.0;
-    let mut bv = -2.0;
-    let mut out = Blend(RgbaImage::new(
-        depth_color_map.width,
-        depth_color_map.height,
-    ));
-   // predraw(&mut out.0, depth_color_map);
-    let mut drawer = Blend(RgbaImage::from_pixel(
-        depth_color_map.width,
-        depth_color_map.height,
-        image::Rgba([255, 255, 255, 0]),
-    ));
-    let mut blurrer = RgbaImage::from_pixel(
-        depth_color_map.width,
-        depth_color_map.height,
-        image::Rgba([255, 255, 255, 0]),
-    );
+    let mut blur_value = -2.0;
+    let w = depth_color_map.width;
+    let h = depth_color_map.height;
+    let mut out = Blend(RgbaImage::new(w,h));
+    let mut drawer = Blend(RgbaImage::from_pixel(w,h,image::Rgba([255, 255, 255, 0])));
+    let mut blurrer = RgbaImage::from_pixel(w,h,image::Rgba([255, 255, 255, 0]));
     for val in depth_color_map.values.iter() {
         let p = *val;
         let x = p.x;
         let y = p.y;
         let d = map_depth_to_distance(p.d, scene_distance, scene_depth);
-        let r = p.rgba[0];
-        let g = p.rgba[1];
-        let b = p.rgba[2];
         let elf = parabola::effective_fl(base_fl, radius, d);
         let spread = parabola::spread(elf, radius, d);
         let blur_diam_px =
-            (parabola::blur_size(radius, elf, sensor_distance, spread) / pxsize) / 8.0 + 0.15;
-        bv = ((blur_diam_px * 10.0).trunc() / 10.0).abs();
-        let color = Rgba([r, g, b, 255]);
-        imageproc::drawing::draw_filled_circle_mut(&mut drawer, (x as i32, y as i32), 1, color);
-        if bv != current_blur {
-            image::imageops::overlay(&mut blurrer, &drawer.0, 0, 0);
-            premultiply(&mut blurrer, &depth_color_map);
-            blurrer = imageproc::filter::gaussian_blur_f32(&mut blurrer, bv as f32);
-            for x in 0..depth_color_map.width {
-                for y in 0..depth_color_map.height {
-                    out.draw_pixel(x, y, *blurrer.get_pixel(x, y));
-                }
-            }
-            drawer = Blend(RgbaImage::from_pixel(
-                depth_color_map.width,
-                depth_color_map.height,
-                image::Rgba([255, 255, 255, 0]),
-            ));
-            blurrer = RgbaImage::from_pixel(
-                depth_color_map.width,
-                depth_color_map.height,
-                image::Rgba([255, 255, 255, 0]),
-            );
-            current_blur = bv;
+            (parabola::blur_size(radius, elf, sensor_distance, spread) / pxsize) / 8.0;
+        blur_value = ((blur_diam_px * 10.0).trunc() / 10.0).abs();
+        let color = Rgba([p.rgba[0], p.rgba[1], p.rgba[2], 255]);
+        imageproc::drawing::draw_filled_circle_mut(&mut drawer, (x as i32, y as i32), 2, color);
+        if blur_value != current_blur {
+            do_paint(&mut blurrer, &drawer, depth_color_map, &mut out, blur_value as f32);
+            drawer = Blend(RgbaImage::from_pixel(w, h, image::Rgba([255, 255, 255, 0])));
+            blurrer = RgbaImage::from_pixel(w, h, image::Rgba([255, 255, 255, 0]));
+            current_blur = blur_value;
         }
     }
-    image::imageops::overlay(&mut blurrer, &drawer.0, 0, 0);
-    premultiply(&mut blurrer, &depth_color_map);
-    blurrer = imageproc::filter::gaussian_blur_f32(&mut blurrer, bv as f32);
-    for x in 0..depth_color_map.width {
-        for y in 0..depth_color_map.height {
-            out.draw_pixel(x, y, *blurrer.get_pixel(x, y));
-        }
-    }
+    do_paint(&mut blurrer, &drawer, depth_color_map, &mut out, blur_value as f32);
     encode_png(&out.0)
 }
