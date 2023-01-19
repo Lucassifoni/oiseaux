@@ -12,8 +12,12 @@ config :scope, ScopeWeb.Endpoint,
   url: [host: "localhost"],
   render_errors: [view: ScopeWeb.ErrorView, accepts: ~w(html json), layout: false],
   pubsub_server: Scope.PubSub,
-  check_origin: ["http://localhost:5173","http://localhost:4000", "http://localhost:5174"],
+  check_origin: ["http://localhost:5173", "http://localhost:4000", "http://localhost:5174"],
   live_view: [signing_salt: "S1hliA6z"]
+
+config :scope,
+  selected_io: Scope.VirtualRemote,
+  selected_device: Scope.VirtualTelescope
 
 # Configures the mailer
 #

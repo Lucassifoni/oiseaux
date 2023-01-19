@@ -1,4 +1,4 @@
-defmodule Scope.Telescope do
+defmodule Scope.VirtualTelescopeServer do
   @derive {Jason.Encoder,
            only: [
              :name,
@@ -39,12 +39,13 @@ defmodule Scope.Telescope do
   @az_time_interval trunc(@az_time / @az_divisions * 1000)
 
   use GenServer
-  alias Scope.Telescope
+  alias Scope.VirtualTelescope
+  alias Scope.VirtualTelescopeServer
 
-  def init(name) do
+  def init(_) do
     {:ok,
-     %Telescope{
-       name: name,
+     %VirtualTelescopeServer{
+       name: "kermit",
        position_alt: -1,
        position_az: -1,
        position_focus: -1,
@@ -59,18 +60,23 @@ defmodule Scope.Telescope do
   end
 
   def notify(state) do
-    Task.start(fn () ->
-      ScopeWeb.ScopeControlChannel.broadcast_state(state)
-    end)
+    VirtualTelescope.notifier(state)
   end
 
   def handle_call(:home, _, state), do: do_home(state)
   def handle_call(:show, _, state), do: {:reply, {:ok, state}, state}
 
-  def handle_info(:continue_move, %Telescope{moving: :no} = state), do: {:noreply, state}
-  def handle_info(:continue_move, %Telescope{moving: _dir} = state), do: continue_move(state)
-  def handle_info(:continue_focus, %Telescope{focusing: :no} = state), do: {:noreply, state}
-  def handle_info(:continue_focus, %Telescope{focusing: _dir} = state), do: continue_focus(state)
+  def handle_info(:continue_move, %VirtualTelescopeServer{moving: :no} = state),
+    do: {:noreply, state}
+
+  def handle_info(:continue_move, %VirtualTelescopeServer{moving: _dir} = state),
+    do: continue_move(state)
+
+  def handle_info(:continue_focus, %VirtualTelescopeServer{focusing: :no} = state),
+    do: {:noreply, state}
+
+  def handle_info(:continue_focus, %VirtualTelescopeServer{focusing: _dir} = state),
+    do: continue_focus(state)
 
   def handle_cast(:start_focus_in, state), do: start_focus(:in, state)
   def handle_cast(:start_focus_out, state), do: start_focus(:out, state)
@@ -86,8 +92,8 @@ defmodule Scope.Telescope do
   def handle_cast(:move_left, state), do: do_move(:right, state)
   def handle_cast(:move_right, state), do: do_move(:left, state)
 
-  def handle_cast(:stop_move, %Telescope{} = state), do: stop_move(state)
-  def handle_cast(:stop_focusing, %Telescope{} = state), do: stop_focus(state)
+  def handle_cast(:stop_move, %VirtualTelescopeServer{} = state), do: stop_move(state)
+  def handle_cast(:stop_focusing, %VirtualTelescopeServer{} = state), do: stop_focus(state)
 
   def valid_move_preconditions?(:down, %{moving: :down}), do: false
   def valid_move_preconditions?(:up, %{moving: :up}), do: false
@@ -137,9 +143,9 @@ defmodule Scope.Telescope do
     end
   end
 
-  def do_move(_dir, %Telescope{moving: :no} = state), do: {:noreply, state}
+  def do_move(_dir, %VirtualTelescopeServer{moving: :no} = state), do: {:noreply, state}
 
-  def do_move(dir, %Telescope{} = state) do
+  def do_move(dir, %VirtualTelescopeServer{} = state) do
     case dir do
       :left -> do_move_az(-1 * @az_increment, state)
       :right -> do_move_az(@az_increment, state)
@@ -149,9 +155,9 @@ defmodule Scope.Telescope do
     end
   end
 
-  def do_focus(_dir, %Telescope{focusing: :no} = state), do: {:noreply, state}
+  def do_focus(_dir, %VirtualTelescopeServer{focusing: :no} = state), do: {:noreply, state}
 
-  def do_focus(dir, %Telescope{} = state) do
+  def do_focus(dir, %VirtualTelescopeServer{} = state) do
     inc =
       case dir do
         :in -> -1 * @focus_step
@@ -174,7 +180,7 @@ defmodule Scope.Telescope do
     {:noreply, new_state}
   end
 
-  def continue_focus(%Telescope{} = state) do
+  def continue_focus(%VirtualTelescopeServer{} = state) do
     msg = dir_to_msg(state.focusing)
 
     if !is_nil(msg) do
@@ -184,7 +190,7 @@ defmodule Scope.Telescope do
     {:noreply, state}
   end
 
-  def do_move_az(inc, %Telescope{} = state) do
+  def do_move_az(inc, %VirtualTelescopeServer{} = state) do
     pos = state.position_az + inc
     turns = trunc(pos / :math.pi())
     normalized = pos - turns * :math.pi()
@@ -197,7 +203,7 @@ defmodule Scope.Telescope do
     {:noreply, new_state}
   end
 
-  def do_move_alt(inc, %Telescope{} = state) do
+  def do_move_alt(inc, %VirtualTelescopeServer{} = state) do
     pos = state.position_alt + inc
     mmax = :math.pi() / 2
     upper_stop = pos <= 0
@@ -222,7 +228,7 @@ defmodule Scope.Telescope do
     {:noreply, new_state}
   end
 
-  def continue_move(%Telescope{} = state) do
+  def continue_move(%VirtualTelescopeServer{} = state) do
     msg = dir_to_msg(state.moving)
 
     if !is_nil(msg) do
@@ -235,8 +241,8 @@ defmodule Scope.Telescope do
   def do_home(state) do
     new_state = %{
       state
-      |upper_alt_stop: false,
-      lower_alt_stop: true,
+      | upper_alt_stop: false,
+        lower_alt_stop: true,
         lower_focus_stop: false,
         home_az: true,
         position_alt: :math.pi() / 2,
@@ -254,6 +260,7 @@ defmodule Scope.Telescope do
     notify(new_state)
     {:noreply, new_state}
   end
+
   def stop_focus(state) do
     new_state = %{state | focusing: :no}
     notify(new_state)

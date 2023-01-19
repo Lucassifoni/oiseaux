@@ -27,8 +27,19 @@ defmodule ScopeWeb.PageController do
         {pf, _rest} = Float.parse(f)
         pf
       end)
+
     scene = Optics.SceneHolder.get_scene()
-    {:ok, blurred} = Optics.RxopticsNif.blur(scene, p_scene_distance, p_sensor_distance, p_pxsize, p_radius, p_base_fl)
+
+    {:ok, blurred} =
+      Optics.RxopticsNif.blur(
+        scene,
+        p_scene_distance,
+        p_sensor_distance,
+        p_pxsize,
+        p_radius,
+        p_base_fl
+      )
+
     bin = :binary.list_to_bin(blurred)
     conn |> put_resp_header("Content-Type", "image/png") |> send_resp(:ok, bin)
   end

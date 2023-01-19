@@ -30,8 +30,9 @@ defmodule Optics.Parabola do
         ) :: float
   def point_and_angle_to_x_coord(%Point{} = p, angle) do
     slope = :math.tan(angle)
+
     case slope do
-      0.0 -> 9999999999999.0
+      0.0 -> 9_999_999_999_999.0
       _ -> (slope * p.x - p.y) / slope
     end
   end
@@ -100,21 +101,21 @@ defmodule Optics.Parabola do
     {:ok, v1} = Segment.make(x, y, source_distance, source_height)
     normal = normal_coords(f, y)
     angle = angle_between_segments(v1, normal)
-    (angle_with_x_axis(v1) + (2.0 * angle)) - :math.pi()
+    angle_with_x_axis(v1) + 2.0 * angle - :math.pi()
   end
 
   @spec reflection_coords(float, float, float, float) ::
-          {:ok,
-           %Optics.Segment{}}
+          {:ok, %Optics.Segment{}}
   def reflection_coords(focal_length, y, source_distance, source_height) do
     output_angle = reflection_angle(focal_length, y, source_distance, source_height)
     x = x_coord_on_parabola(focal_length, y)
     ray_length = 2.5 * focal_length
+
     Segment.make(
       x,
       y,
       x + abs(ray_length * :math.cos(output_angle)),
-      y + ray_length * (:math.sin(output_angle * -1))
+      y + ray_length * :math.sin(output_angle * -1)
     )
   end
 
@@ -141,14 +142,15 @@ defmodule Optics.Parabola do
   def floaty_equal(f1, f2, n) do
     Float.round(f1, n) == Float.round(f2, n)
   end
+
   @spec sfe(
           %Optics.Segment{},
           %Optics.Segment{},
           integer()
         ) :: boolean()
-  def sfe(%Segment{} = s1, %Segment{} =  s2, n) do
+  def sfe(%Segment{} = s1, %Segment{} = s2, n) do
     floaty_equal(s1.a.x, s2.a.x, n) and floaty_equal(s1.b.x, s2.b.x, n) and
-    floaty_equal(s1.a.y, s2.a.y, n) and floaty_equal(s1.b.y, s2.b.y, n)
+      floaty_equal(s1.a.y, s2.a.y, n) and floaty_equal(s1.b.y, s2.b.y, n)
   end
 
   @spec non_parallel_rayfan_coords_rs(float, float, float, float, integer) :: list(%Segment{})
@@ -172,6 +174,12 @@ defmodule Optics.Parabola do
       iex> true = Optics.Parabola.sfe(rays |> List.last(), rays_rs |> List.last(), 8)
   """
   def non_parallel_rayfan_coords_rs(focal_length, radius, source_distance, source_height, rays) do
-    Optics.RxopticsNif.non_parallel_rayfan_coords(focal_length, radius, source_distance, source_height, rays)
+    Optics.RxopticsNif.non_parallel_rayfan_coords(
+      focal_length,
+      radius,
+      source_distance,
+      source_height,
+      rays
+    )
   end
 end

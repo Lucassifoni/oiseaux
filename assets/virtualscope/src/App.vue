@@ -17,7 +17,9 @@ onMounted(() => {
       chan.value.push("show_status", {})
         .receive("ok", (payload) => {
           scope.value = payload as Telescope;
-        }).receive("error", () => { });
+        }).receive("error", () => {
+          
+        });
       chan.value.on("scope_status", payload => {
         scope.value = payload
       });

@@ -45,7 +45,8 @@ defmodule Scope.MixProject do
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
       {:rustler, "0.26.0"},
-      {:benchee, "1.1.0"}
+      {:benchee, "1.1.0"},
+      {:circuits_uart, "~> 1.5"}
     ]
   end
 

@@ -11,7 +11,7 @@ defmodule Optics.SceneHolder do
   end
 
   def start_link(_) do
-    Agent.start_link(fn () -> initial_state() end, name: __MODULE__)
+    Agent.start_link(fn -> initial_state() end, name: __MODULE__)
   end
 
   def get_scene() do

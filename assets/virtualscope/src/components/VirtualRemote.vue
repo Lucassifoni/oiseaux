@@ -26,10 +26,15 @@ const stop_focus = () => {
   emit('stop_focus')
   setTimeout(() => {
     imgUrl.value = toImgUrl(props.scope.position_focus);
+    blur.value = true;
   }, 32);
 };
 const toImgUrl = (focus_position: number): string => {
-  return `http://localhost:4000/dof_simulation?scene_distance=20000.0&sensor_distance=${408.0 - focus_position}&pxsize=0.0028&radius=57.0&base_fl=400`;
+  return `http://nezha:4000/dof_simulation?scene_distance=20000.0&sensor_distance=${408.0 - focus_position}&pxsize=0.0028&radius=57.0&base_fl=400`;
+};
+const blur = ref(true);
+const unblur = () => {
+  blur.value = false;
 };
 const imgUrl = ref(toImgUrl(0));
 </script>
@@ -37,7 +42,7 @@ const imgUrl = ref(toImgUrl(0));
 <template>
   <div style="background: gray;padding:16px;border-radius:8px; display: flex;">
     <div class="screen" style="width: 320px; height: 180px; background: black;border:1px solid #666;">
-      <img :src="imgUrl" style="width: 100%; height: auto" alt="">
+      <img :src="imgUrl" @load="unblur" style="width: 100%; height: auto" :style="{filter: blur ? `blur(20px)` : ``}" alt="">
     </div>
     <div class="nav-buttons"
       style="height: 100%; width: 200px; height: 180px; position: relative; background: gray; margin-left: 10px;">
