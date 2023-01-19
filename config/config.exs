@@ -16,7 +16,7 @@ config :scope, ScopeWeb.Endpoint,
   live_view: [signing_salt: "S1hliA6z"]
 
 config :scope,
-  selected_io: Scope.VirtualRemote,
+  selected_io: Scope.PhysicalRemote,
   selected_device: Scope.VirtualTelescope
 
 # Configures the mailer

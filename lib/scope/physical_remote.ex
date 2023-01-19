@@ -1,5 +1,7 @@
 defmodule Scope.PhysicalRemote do
+  alias Scope.IoBehaviour
   use Scope.IoMacro
+  @behaviour IoBehaviour
 
   @communication_ready <<105>>
   @move_left "1\r\n"
