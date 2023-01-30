@@ -17,7 +17,8 @@ config :scope, ScopeWeb.Endpoint,
 
 config :scope,
   selected_io: Scope.PhysicalRemote,
-  selected_device: Scope.VirtualTelescope
+  selected_device: Scope.VirtualTelescope,
+  platform: if (System.get_env("SCOPE_PLATFORM", "MACOS") == "MACOS"), do: :macos, else: :nezha
 
 # Configures the mailer
 #

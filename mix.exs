@@ -46,7 +46,8 @@ defmodule Scope.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:rustler, "0.26.0"},
       {:benchee, "1.1.0"},
-      {:circuits_uart, "~> 1.5"}
+      {:circuits_uart, "~> 1.5"},
+      {:micro_timer, "~> 0.1.0"}
     ]
   end
 
